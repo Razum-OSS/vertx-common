@@ -1,10 +1,10 @@
 group = "si.razum"
-version = "1.0"
+version = "1.0.1-SNAPSHOT"
 
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
     id("org.jetbrains.kotlin.jvm") version "1.7.10"
-
+	`maven-publish`
     `java-library`
     `java-test-fixtures` // Allows us to expose testing classes to consumer libraries
 }
