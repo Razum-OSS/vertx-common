@@ -62,7 +62,7 @@ object ConnectionPool {
             setProperty("dataSourceClassName", "org.postgresql.ds.PGSimpleDataSource")
             setProperty("dataSource.databaseName", cfg.database)
             setProperty("dataSource.user", cfg.user)
-            setProperty("dataSource.password", cfg.password)
+            setProperty("dataSource.password", cfg.password ?: "")
 
             if (cfg.socketFile == null) {
                 LOG.info("Database connection via TCP/IP to ${cfg.host}")
@@ -84,16 +84,32 @@ object ConnectionPool {
         return HikariDataSource(HikariConfig(props))
     }
 
-    /** Migrates the database using Flyway. Includes development data in migrations if [includeDevMigrations] is true. */
-    fun migrateDatabase(cfg: DbConfig, includeDevMigrations: Boolean, allowOutOfOrder: Boolean) {
+    /**
+     * Migrates the database using Flyway using files in `main/resources/db/migration`.
+     *
+     * @param includeDevMigrations Include migrations in `main/resources/db/devMigration`, too. This allows the dev
+     * environment to contain data fixtures and such (but be careful not to conflict versions - a good rule is to have
+     * main migrations use whole numbers while dev migrations are decimals).
+     *
+     * @param allowInitialMigration If no Flyway tables exist in the database yet (and you would like to create them),
+     * set the [allowInitialMigration] parameter to true (it directly sets Flyway's baselineOnMigrate - it's fine to call it
+     * on an already initialized database, the danger is if a wrong, non-flyway-enabled database were to be provided in
+     * the configuration by mistake, as Flyway would proceed to migrate it).
+     */
+    fun migrateDatabase(
+        cfg: DbConfig,
+        includeDevMigrations: Boolean = false,
+        allowOutOfOrder: Boolean = false,
+        allowInitialMigration: Boolean = false
+    ) {
         val LOG = LoggerFactory.getLogger("si.razum.vertx.db.migrateDatabase")
-        configureFlyway(LOG, dataSource(cfg), includeDevMigrations, allowOutOfOrder).migrate()
+        configureFlyway(LOG, dataSource(cfg), includeDevMigrations, allowOutOfOrder, allowInitialMigration).migrate()
     }
 
     fun verifyDatabaseMigrations(cfg: DbConfig, includeDevMigrations: Boolean, allowOutOfOrder: Boolean) {
         val LOG = LoggerFactory.getLogger("si.razum.vertx.db.migrateDatabase")
         LOG.info("Verifying migrations")
-        configureFlyway(LOG, dataSource(cfg), includeDevMigrations, allowOutOfOrder).validate()
+        configureFlyway(LOG, dataSource(cfg), includeDevMigrations, allowOutOfOrder, false).validate()
     }
 
     /** Closes a data source & removes it from the internal map */
@@ -103,9 +119,10 @@ object ConnectionPool {
         }
     }
 
-    private fun configureFlyway(LOG: Logger, ds: DataSource, includeDevMigrations: Boolean, allowOutOfOrder: Boolean) = Flyway.configure().apply {
+    private fun configureFlyway(LOG: Logger, ds: DataSource, includeDevMigrations: Boolean, allowOutOfOrder: Boolean, baselineOnMigrate: Boolean) = Flyway.configure().apply {
         ignoreMissingMigrations(true)
         ignorePendingMigrations(true)
+        baselineOnMigrate(baselineOnMigrate)
         mixed(true)
         outOfOrder(allowOutOfOrder)
         if (includeDevMigrations) {
