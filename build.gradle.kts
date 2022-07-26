@@ -1,5 +1,5 @@
 group = "si.razum"
-version = "1.0.1-SNAPSHOT"
+version = "1.0.2-SNAPSHOT"
 
 plugins {
     // Apply the org.jetbrains.kotlin.jvm Plugin to add support for Kotlin.
@@ -34,6 +34,10 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     }
 }
 
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
+}
+
 
 dependencies {
     val vertxVersion = "4.0.2" // should be lowest common version of projects
@@ -46,9 +50,6 @@ dependencies {
 
     // Use the Kotlin test library.
     testImplementation("org.jetbrains.kotlin:kotlin-test")
-
-    // Use the Kotlin JUnit integration.
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit")
 
     // Dependencies that will be found on the target system, possibly with a different version!
     compileOnly("io.vertx:vertx-core:${vertxVersion}")
@@ -69,4 +70,10 @@ dependencies {
     testFixturesImplementation("org.postgresql:postgresql:42.2.16")
     testFixturesImplementation("org.testcontainers:testcontainers:1.15.3")
     testFixturesImplementation("org.testcontainers:postgresql:1.15.2")
+
+    testImplementation("io.kotest:kotest-runner-junit5:5.4.0")
+    testImplementation("io.kotest:kotest-assertions-core:5.4.0")
+    testImplementation("io.kotest:kotest-property:5.4.0")
+    testImplementation("io.kotest:kotest-framework-datatest:5.4.0")
+}
 }
