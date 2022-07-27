@@ -76,4 +76,11 @@ dependencies {
     testImplementation("io.kotest:kotest-property:5.4.0")
     testImplementation("io.kotest:kotest-framework-datatest:5.4.0")
 }
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+        }
+    }
 }
