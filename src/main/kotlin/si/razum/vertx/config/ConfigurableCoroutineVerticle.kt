@@ -8,7 +8,6 @@ import io.vertx.core.eventbus.MessageConsumer
 import io.vertx.core.json.JsonObject
 import io.vertx.kotlin.coroutines.CoroutineVerticle
 import io.vertx.kotlin.coroutines.await
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -57,7 +56,7 @@ abstract class ConfigurableCoroutineVerticle(val log: Logger): CoroutineVerticle
         const val CONFIG_CHANGE_HANDLER_ADDRESS = "si.razum.vertx.config.configChange"
 
         /** Address on which we will respond to requests for initial configuration (if there is one!) */
-        const val CONFIG_INITIAL_VALUE_ADDRESS = "si.razum.vertx.config.configChange"
+        const val CONFIG_INITIAL_VALUE_ADDRESS = "si.razum.vertx.config.currentConfig"
 
         private val LOG = LoggerFactory.getLogger("si.razum.vertx.config.ConfigurableCoroutineVerticle")
 
@@ -100,5 +99,8 @@ abstract class ConfigurableCoroutineVerticle(val log: Logger): CoroutineVerticle
             }
             return configRetriever
         }
+
+
+
     }
 }
