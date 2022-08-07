@@ -65,10 +65,18 @@ abstract class ConfigurableCoroutineVerticle(val log: Logger): CoroutineVerticle
          * Vertx event bus.
          * @param classpathDefaultsPath The location of the default config in the project's classpath
          * @param overrideFileLocation A file that can override the defaults and is monitored for changes
+         * @param baseConfig If provided, this config will serve as the basis before any file-based configs are applied over it
          */
-        fun reloadableHoconConfig(vertx: Vertx, classpathDefaultsPath: String? = null, overrideFileLocation: String? = null): ConfigRetriever {
+        fun reloadableHoconConfig(vertx: Vertx, classpathDefaultsPath: String? = null, overrideFileLocation: String? = null, baseConfig: Any? = null): ConfigRetriever {
             // HOCON configuration format - defaults embedded in app
             val configRetrieverOptions = ConfigRetrieverOptions()
+
+            if (baseConfig != null) {
+                LOG.info("Using an underlying config object as the basis for other config")
+                configRetrieverOptions.addStore(
+                    ConfigStoreOptions().setType("json").setConfig(JsonObject.mapFrom(baseConfig))
+                )
+            }
 
             if (classpathDefaultsPath != null) {
                 LOG.info("Reading default config from classpath at $classpathDefaultsPath")
@@ -97,6 +105,7 @@ abstract class ConfigurableCoroutineVerticle(val log: Logger): CoroutineVerticle
                 .onSuccess { msg.reply(it) }
                 .onFailure { msg.fail(500, it.message) }
             }
+
             return configRetriever
         }
 

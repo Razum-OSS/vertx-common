@@ -7,6 +7,7 @@ import io.kotest.matchers.shouldBe
 import io.vertx.core.Vertx
 import io.vertx.core.json.JsonObject
 import io.vertx.kotlin.core.deploymentOptionsOf
+import io.vertx.kotlin.core.json.jsonObjectOf
 import io.vertx.kotlin.coroutines.await
 import org.slf4j.LoggerFactory
 import kotlin.test.assertFails
@@ -80,5 +81,14 @@ class ConfigurableCoroutineVerticleSpec : FreeSpec({
                 verticle.foo shouldBe "overwritten"
             }
         }
+    }
+
+    "An initial object can be provided as the basis data source, very useful in tests" {
+        val retriever = ConfigurableCoroutineVerticle.reloadableHoconConfig(vertx,
+            baseConfig = jsonObjectOf("foo" to "noo", "something" to "else"),
+            classpathDefaultsPath = "fooJson.json",
+        )
+        retriever.config.await().getString("something") shouldBe "else" // remains from the seed JSON
+        retriever.config.await().getString("foo") shouldBe "bar" // overlaid by classpath
     }
 })
