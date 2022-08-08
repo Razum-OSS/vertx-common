@@ -16,38 +16,40 @@ import si.razum.vertx.db.DbConfig
  */
 class PostgresContainer(val pgVersion: String) {
 
+    private val CLEAN_MIGRATED_DB_NAME = "sourcedatabase"
+
     private val container: PostgreSQLContainer<Nothing> by lazy {
         PostgreSQLContainer<Nothing>("postgres:$pgVersion").apply {
-            withDatabaseName("sampledatabase")
+            withDatabaseName(CLEAN_MIGRATED_DB_NAME)
             withUsername("testuser")
             withPassword("passwwwwooorrrrd")
 
             start()
 
             // migrate so template DB will be populated, then close connection so it can be used as template
-            val db = dbConfig(this, databaseName)
+            val db = dbConfig(this, CLEAN_MIGRATED_DB_NAME)
             migrateDatabase(db, true, false)
             ConnectionPool.closeDataSource(db)
         }
     }
 
     /** Generates a random database name so we can spawn new ones from the original template */
-    private val databaseRandomName = RandomStringUtils.randomAlphabetic(10).toLowerCase()
+    private fun databaseRandomName() = RandomStringUtils.randomAlphabetic(10).toLowerCase()
 
     /** Create a DBConfig object that can be passed on to other code, with the instance-specific random [dbName] */
     private fun dbConfig(container: PostgreSQLContainer<Nothing>, dbName: String) = DbConfig(
         host = "127.0.0.1", port = container.firstMappedPort, user = container.username, database = dbName, password = container.password
     )
 
-    private val postgres = container.apply {
-        val result = execInContainer("createdb", "-U", username, "-T", container.databaseName, databaseRandomName)
+    private fun templatedPostgres(dbNameForCopy: String) = container.apply {
+        val result = execInContainer("createdb", "-U", username, "-T", CLEAN_MIGRATED_DB_NAME, dbNameForCopy)
         check (result.exitCode == 0) { "Error creating database in Postgres container" }
     }
 
     /** Opens a connection to a fresh database & returns the configuration object that can be used to connect to it */
     fun openConnection(): DbConfig {
-        val name = databaseRandomName
-        return dbConfig(postgres.withDatabaseName(name), name)
+        val name = databaseRandomName()
+        return dbConfig(templatedPostgres(name), name)
     }
 
     /*override val jooq = DSL.using(postgres.apply {
