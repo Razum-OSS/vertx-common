@@ -6,6 +6,8 @@ import io.vertx.config.ConfigStoreOptions
 import io.vertx.core.Vertx
 import io.vertx.core.eventbus.MessageConsumer
 import io.vertx.core.json.JsonObject
+import io.vertx.ext.web.Route
+import io.vertx.ext.web.RoutingContext
 import io.vertx.kotlin.coroutines.CoroutineVerticle
 import io.vertx.kotlin.coroutines.await
 import kotlinx.coroutines.launch
@@ -50,6 +52,26 @@ abstract class ConfigurableCoroutineVerticle(val log: Logger): CoroutineVerticle
      * nothing had changed, e.g at verticle start.
      */
     abstract suspend fun readConfiguration(conf: JsonObject, forceStatusOutput: Boolean = false)
+
+    /**
+     * Runs a Route handler inside a coroutine context bound to its verticle.
+     *
+     * Implementation node: this functionality isn't tied to configuration would perhaps be more appropriate in
+     * another subclass of CoroutineVerticle (or, alternatively, this subclass could be renamed). It is harder to
+     * make it a pure extension function because its most ergonomic use requires two contexts (the verticle, and the
+     * route). For the time being we are keeping it here lest we repeat this code in every verticle!
+     */
+    fun Route.coroutineHandler(fn: suspend (RoutingContext) -> Unit) {
+        handler { ctx ->
+            launch(coroutineContext) {
+                try {
+                    fn(ctx)
+                } catch (e: Exception) {
+                    ctx.fail(e)
+                }
+            }
+        }
+    }
 
     companion object {
         /** Address on the event bus via which config changes will be propagated */
